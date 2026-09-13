@@ -1,0 +1,12 @@
+# Never commit real keys if you switch to environment variables
+.env
+
+# Generated data / vector DB / cache -- regenerate locally, don't commit
+data/
+chroma_db/
+*.csv
+*.json
+!requirements.txt
+
+__pycache__/
+*.pyc
