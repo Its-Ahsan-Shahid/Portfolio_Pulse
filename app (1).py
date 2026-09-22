@@ -14,7 +14,7 @@ except ImportError as e:
 
 # Configure page metadata and wide layout
 st.set_page_config(
-    page_title="PortfolioAI - Agentic Market Intelligence",
+    page_title="Portfolio_Pulse - Agentic Market Intelligence",
     page_icon="📈",
     layout="wide",
 )
