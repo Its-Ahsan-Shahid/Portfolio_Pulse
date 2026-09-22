@@ -19,7 +19,7 @@ st.set_page_config(
     layout="wide",
 )
 
-def fetch_agent_data(ticker, timeframe, company_name=None):
+def fetch_agent_data(ticker, timeframe, company_name=None, question=None):
     """
     Adapter Function: Interfaces Ahsan's multi-agent backend with the Streamlit UI.
     Calls generate_portfolio_pulse_report and maps output safely to UI state.
@@ -51,7 +51,7 @@ def fetch_agent_data(ticker, timeframe, company_name=None):
 
     try:
         # Call Ahsan's primary pipeline function
-        raw_report = generate_portfolio_pulse_report(ticker, company_name=company_name)
+        raw_report = generate_portfolio_pulse_report(ticker, company_name=company_name,question=question)
 
         if isinstance(raw_report, dict):
             # Extract Moderator / Arbitrator verdict
@@ -137,14 +137,14 @@ def fetch_agent_data(ticker, timeframe, company_name=None):
 with st.sidebar:
     st.header("⚙️ Analysis Settings")
 
-    company_choices = {
-        "Tesla, Inc. (TSLA)": "TSLA",
-        "NVIDIA Corporation (NVDA)": "NVDA",
-        "Apple Inc. (AAPL)": "AAPL",
-        "Microsoft Corporation (MSFT)": "MSFT",
-        "Amazon.com, Inc. (AMZN)": "AMZN",
-        "Nike, Inc. (NKE)": "NKE",
-    }
+    ticker_input = st.text_input("Enter Ticker Symbol", value="NKE", placeholder="e.g. NKE, TSLA, AAPL").strip().upper()
+    company_name_input = st.text_input("Company Name (optional, improves relevance)", value="", placeholder="e.g. Nike").strip()
+    selected_company_label = company_name_input or ticker_input
+
+    query_input = st.text_area(
+        "What do you want to know? (optional)",
+        placeholder="e.g. How will recent tariff news affect margins?",
+    ).strip() or None
 
     selected_company_label = st.selectbox("Select Target Company", list(company_choices.keys()))
     ticker_input = company_choices[selected_company_label]
@@ -167,13 +167,13 @@ with st.sidebar:
 if "portfolio_data" not in st.session_state or run_clicked:
     spinner_text = f"Running live multi-agent intelligence on {ticker_input}..." if run_clicked else f"Initializing market data for {ticker_input}..."
     with st.spinner(spinner_text):
-        st.session_state.portfolio_data = fetch_agent_data(ticker_input, timeframe_input, selected_company_label)
+        st.session_state.portfolio_data = fetch_agent_data(ticker_input, timeframe_input, selected_company_label,query_input)
 
 data = st.session_state.portfolio_data
 
 
 # --- HEADER SECTION ---
-st.title("📈 PortfolioAI: Multi-Agent Financial Intelligence")
+st.title("📈 Portfolio_Pulse: Multi-Agent Financial Intelligence")
 st.caption(
     f"Real-time news synthesis, sentiment scoring, and adversarial agent debate for **{data['company_name']} ({data['ticker']})**"
 )
