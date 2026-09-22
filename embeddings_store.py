@@ -24,10 +24,10 @@ import pandas as pd
 import chromadb
 from chromadb.utils import embedding_functions
 
-PERSIST_DIR = "./chroma_db"
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+import pandas as pd
+import chromadb
 
-_embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL)
+PERSIST_DIR = "./chroma_db"
 _client = chromadb.PersistentClient(path=PERSIST_DIR)
 
 
@@ -42,7 +42,7 @@ def build_vector_store(df: pd.DataFrame, ticker: str) -> "chromadb.Collection":
         _client.delete_collection(collection_name)
     except Exception:
         pass  # collection didn't exist yet -- fine
-    collection = _client.create_collection(collection_name, embedding_function=_embedding_fn)
+    collection = _client.create_collection(collection_name)
 
     if df.empty:
         return collection
@@ -70,7 +70,7 @@ def build_vector_store(df: pd.DataFrame, ticker: str) -> "chromadb.Collection":
 
 def get_collection(ticker: str):
     """Loads an already-built collection for `ticker` without rebuilding it."""
-    return _client.get_collection(f"news_{ticker.lower()}", embedding_function=_embedding_fn)
+    return _client.get_collection(f"news_{ticker.lower()}")
 
 
 def retrieve_context(ticker: str, query: str = None, n_results: int = 10) -> list:
