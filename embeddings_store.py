@@ -49,10 +49,20 @@ def build_vector_store(df: pd.DataFrame, ticker: str) -> "chromadb.Collection":
 
     documents = (df["title"].fillna("") + ". " + df["summary"].fillna("")).tolist()
     ids = [str(i) for i in range(len(df))]
+    df = df.reset_index(drop=True)
     metadatas = df[[
         "title", "url", "source", "days_ago", "recency_window", "recency_weight",
         "av_sentiment_label", "av_sentiment_score", "lm_polarity",
     ]].fillna("").to_dict(orient="records")
+    for i, meta in enumerate(metadatas):
+        meta["ticker"] = ticker.upper()
+        meta["article_id"] = f"{ticker.upper()}_{i}"
+        meta["publication_date"] = meta.get("days_ago")  # human-friendly date added below
+    # replace days_ago-only dates with an actual calendar date string
+    if "time_published" in df.columns:
+        pub_dates = pd.to_datetime(df["time_published"], format="%Y%m%dT%H%M%S", errors="coerce")
+        for i, meta in enumerate(metadatas):
+            meta["publication_date"] = pub_dates.iloc[i].strftime("%Y-%m-%d") if pd.notnull(pub_dates.iloc[i]) else "unknown"
 
     collection.add(documents=documents, ids=ids, metadatas=metadatas)
     return collection
@@ -77,6 +87,10 @@ def retrieve_context(ticker: str, query: str = None, n_results: int = 10) -> lis
     out = []
     for doc, meta, dist in zip(results["documents"][0], results["metadatas"][0], results["distances"][0]):
         out.append({"text": doc, "metadata": meta, "distance": dist})
+
+    # Prioritize recent news: sort by recency_weight (high first), then by
+    # similarity distance (low = more relevant) as the tiebreaker.
+    out.sort(key=lambda r: (-float(r["metadata"].get("recency_weight", 1.0)), r["distance"]))
     return out
 
 
@@ -92,10 +106,17 @@ def get_context_for_agents(ticker: str, query: str = None, n_results: int = 10) 
 
     lines = []
     for r in results:
-        tag = "[RECENT - last 5 days]" if r["metadata"].get("recency_window") == "priority_recent" else "[CONTEXT]"
-        sentiment = r["metadata"].get("av_sentiment_label", "Neutral")
-        lines.append(f"{tag} ({sentiment}) {r['text']}")
-    return "\n".join(lines)
+        meta = r["metadata"]
+        tag = "[RECENT - last 5 days]" if meta.get("recency_window") == "priority_recent" else "[CONTEXT]"
+        sentiment = meta.get("av_sentiment_label", "Neutral")
+        source = meta.get("source", "Unknown source")
+        pub_date = meta.get("publication_date", "unknown date")
+        url = meta.get("url", "")
+        lines.append(
+            f"{tag} ({sentiment}) {r['text']}\n"
+            f"    Source: {source} | Published: {pub_date} | URL: {url}"
+        )
+    return "\n\n".join(lines)
 
 
 # ============================================================================
