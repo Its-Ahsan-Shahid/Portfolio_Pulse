@@ -146,12 +146,7 @@ with st.sidebar:
         placeholder="e.g. How will recent tariff news affect margins?",
     ).strip() or None
 
-    selected_company_label = st.selectbox("Select Target Company", list(company_choices.keys()))
-    ticker_input = company_choices[selected_company_label]
 
-    timeframe_input = st.selectbox(
-        "News Horizon", ["Last 24 Hours", "Last 7 Days", "Last 30 Days"]
-    )
 
     st.markdown("---")
     st.markdown("### 🤖 Active Agents")
