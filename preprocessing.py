@@ -54,7 +54,7 @@ import pysentiment2 as ps
 # ============================================================================
 # PUT YOUR API KEY HERE  (see the note at the top of this file)
 # ============================================================================
-ALPHAVANTAGE_API_KEY = ""   # <-- paste your key between the quotes for quick testing
+ALPHAVANTAGE_API_KEY = "FNJ9KABTN7MU6D67"   # <-- paste your key between the quotes for quick testing
 # ============================================================================
 
 DATA_DIR = Path("data")
@@ -71,10 +71,16 @@ def get_api_key() -> str:
     the ALPHAVANTAGE_API_KEY variable pasted above (handy for quick local/
     Colab testing), then finally a hidden prompt as a last resort.
     """
+    try:
+        import streamlit as st
+        if "ALPHAVANTAGE_API_KEY" in st.secrets:
+            return st.secrets["ALPHAVANTAGE_API_KEY"]
+    except Exception:
+        pass
     return (
         os.getenv("ALPHAVANTAGE_API_KEY")
         or ALPHAVANTAGE_API_KEY
-        or getpass("Enter your Alpha Vantage API key: ")
+        or getpass("Enter your Groq API key: ")
     ).strip()
 
 
@@ -133,13 +139,27 @@ def fetch_news(ticker: str, days_back: int = 25, limit: int = 200, use_cache: bo
 
     articles = payload.get("feed", [])
 
-    # De-duplicate: the same story is often syndicated to several outlets.
-    seen, deduped = set(), []
+        # De-duplicate: first pass by exact URL, second pass by near-identical
+    # title (catches the same wire story syndicated under different URLs).
+    from difflib import SequenceMatcher
+
+    def _normalize(title):
+        return "".join(c.lower() for c in (title or "") if c.isalnum() or c.isspace()).strip()
+
+    seen_urls, seen_titles, deduped = set(), [], []
     for art in articles:
         url = art.get("url")
-        if url and url in seen:
+        if url and url in seen_urls:
             continue
-        seen.add(url)
+
+        norm_title = _normalize(art.get("title"))
+        is_dupe_title = any(SequenceMatcher(None, norm_title, t).ratio() > 0.87 for t in seen_titles)
+        if is_dupe_title:
+            continue
+
+        if url:
+            seen_urls.add(url)
+        seen_titles.append(norm_title)
         deduped.append(art)
 
     if use_cache:
