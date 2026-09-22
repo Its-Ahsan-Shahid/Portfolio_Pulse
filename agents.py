@@ -39,42 +39,42 @@ default model below ever returns a "model not found" error.
 import os
 import requests
 from getpass import getpass
+from groq import Groq
 
 # ============================================================================
-# PUT YOUR API KEY HERE  (see the note at the top of this file)
+# PUT YOUR API KEY HERE
 # ============================================================================
-XAI_API_KEY = ""   # <-- paste your Grok/xAI key between the quotes for quick testing
+GROQ_API_KEY = "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"   # <-- paste your Groq key (from console.groq.com) between the quotes
 # ============================================================================
 
-XAI_BASE_URL = "https://api.x.ai/v1/chat/completions"
-MODEL = "grok-4.5"   # change this if xAI has released a newer default model by the time you read this
+MODEL = "openai/gpt-oss-120b"
 
 
 def get_api_key() -> str:
+    try:
+        import streamlit as st
+        if "GROQ_API_KEY" in st.secrets:
+            return st.secrets["GROQ_API_KEY"]
+    except Exception:
+        pass
     return (
-        os.getenv("XAI_API_KEY")
-        or XAI_API_KEY
-        or getpass("Enter your Grok/xAI API key: ")
+        os.getenv("GROQ_API_KEY")
+        or GROQ_API_KEY
+        or getpass("Enter your Groq API key: ")
     ).strip()
 
 
 def call_grok(system_prompt: str, user_prompt: str, temperature: float = 0.4) -> str:
-    """Thin wrapper around xAI's chat completions endpoint. One call in, one string out."""
-    headers = {
-        "Authorization": f"Bearer {get_api_key()}",
-        "Content-Type": "application/json",
-    }
-    body = {
-        "model": MODEL,
-        "temperature": temperature,
-        "messages": [
+    client = Groq(api_key=get_api_key())
+    response = client.chat.completions.create(
+        model=MODEL,
+        temperature=temperature,
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-    }
-    resp = requests.post(XAI_BASE_URL, headers=headers, json=body, timeout=60)
-    resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"].strip()
+    )
+    return response.choices[0].message.content.strip()
 
 
 # ---------------------------------------------------------------------------
