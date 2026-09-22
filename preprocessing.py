@@ -105,7 +105,7 @@ def _cache_path(ticker: str, days_back: int) -> Path:
     return NEWS_CACHE_DIR / f"{ticker.upper()}_{days_back}d_{today}.json"
 
 
-def fetch_news(ticker: str, days_back: int = 25, limit: int = 200, use_cache: bool = True) -> list:
+def fetch_news(ticker: str, days_back: int = 25, limit: int = 1000, use_cache: bool = True) -> list:
     """
     Calls Alpha Vantage's NEWS_SENTIMENT endpoint for real.
 
