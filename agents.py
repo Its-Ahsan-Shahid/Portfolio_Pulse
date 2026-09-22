@@ -39,7 +39,6 @@ default model below ever returns a "model not found" error.
 import os
 import requests
 from getpass import getpass
-!pip install -q groq gradio
 from groq import Groq
 
 # ============================================================================
